@@ -1061,11 +1061,18 @@ static void process_xevent_selection(Ghandles * g, XSelectionEvent * ev)
                 g->utf8_string_atom, g->qprop,
                 g->stub_win, ev->time);
     else
-        send_clipboard_data(g->vchan, g->stub_win, (char *) data, len, g->protocol_version);
-    /* even if the clipboard owner does not support UTF8 and we requested
-       XA_STRING, it is fine - ascii is legal UTF8 */
+        if (type == XInternAtom(g->display, "INCR", False)) {
+            char INCR_WARNING[] =
+                "Qube clipboard size over 256KiB and X11 INCR protocol support is not implemented!\n";
+            send_clipboard_data(g->vchan, g->stub_win, (char *) &INCR_WARNING,
+                                sizeof(INCR_WARNING), g->protocol_version);
+        } else {
+            send_clipboard_data(g->vchan, g->stub_win, (char *) data, len,
+                                g->protocol_version);
+            /* even if the clipboard owner does not support UTF8 and we requested
+            XA_STRING, it is fine - ascii is legal UTF8 */
+        }
     XFree(data);
-
 }
 
 static void process_xevent_selection_req(Ghandles * g,
