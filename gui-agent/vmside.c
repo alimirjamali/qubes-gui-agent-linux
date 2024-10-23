@@ -985,18 +985,15 @@ static void send_clipboard_data(libvchan_t *vchan, XID window, char *data, uint3
     struct msg_hdr hdr;
     hdr.type = MSG_CLIPBOARD_DATA;
     hdr.window = window;
-    if (len > MAX_CLIPBOARD_SIZE)
-    {
-        if (protocol_version >= QUBES_GUID_MIN_CLIPBOARD_4X) {
-            // xside is capable of receiving (up to) 4X of the previous size.
-            // it is also smarter. send one byte over the new buffer limit.
-            // A simple sign for xside to reject it.
-            len = MAX_CLIPBOARD_BUFFER_SIZE + 1;
-        } else {
-            // The dumb case. Truncate the data to the old size. User will lose
-            // some inter-vm clipboard data without being notified.
-            len = MAX_CLIPBOARD_SIZE;
-        }
+    if ((protocol_version < QUBES_GUID_MIN_CLIPBOARD_4X) && (len > MAX_CLIPBOARD_SIZE)) {
+        // The dumb case. Truncate the data to the old size. User might lose
+        // some inter-vm clipboard data without being notified.
+        len = MAX_CLIPBOARD_SIZE;
+    } else if (len > MAX_CLIPBOARD_BUFFER_SIZE + 1) {
+        // xside is capable of receiving (up to) 4X of the previous size.
+        // it is also smarter. send one byte over the new buffer limit.
+        // A simple sign for xside to reject it.
+        len = MAX_CLIPBOARD_BUFFER_SIZE + 1;
     }
     hdr.untrusted_len = len;
     write_struct(vchan, hdr);
